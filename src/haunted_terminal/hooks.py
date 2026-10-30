@@ -121,19 +121,41 @@ if (-not (Test-Path Function:\_ghost_original_prompt)) {
     }
 }
 
+# Capture command buffer on Enter if PSReadLine is available
+if (Get-Command Set-PSReadLineKeyHandler -ErrorAction SilentlyContinue) {
+    Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {
+        try {
+            $line = $null
+            $cursor = $null
+            [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+            $global:_ghost_last_cmd = $line
+            $global:_ghost_start_time = Get-Date
+        } catch {}
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+    }
+}
+
 function global:prompt {
     $ghostExit = $LASTEXITCODE
     if ($null -eq $ghostExit) { $ghostExit = 0 }
 
     # Display any pending whisper
-    & ghost pending 2>$null
+    ghost pending 2>$null
 
-    if ($global:_ghost_last_cmd) {
+    $cmdToEval = $global:_ghost_last_cmd
+    if (-not $cmdToEval) {
+        $lastH = Get-History -Count 1 -ErrorAction SilentlyContinue
+        if ($lastH) {
+            $cmdToEval = $lastH.CommandLine
+        }
+    }
+
+    if ($cmdToEval) {
         $ghostDur = 0
         if ($global:_ghost_start_time) {
             $ghostDur = [math]::Round(((Get-Date) - $global:_ghost_start_time).TotalSeconds, 3)
         }
-        & ghost whisper --cmd $global:_ghost_last_cmd --exit-code $ghostExit --duration $ghostDur --cwd $PWD.Path --session $env:_GHOST_SESSION_ID 2>$null
+        ghost whisper --cmd $cmdToEval --exit-code $ghostExit --duration $ghostDur --cwd $PWD.Path --session $env:_GHOST_SESSION_ID 2>$null
         $global:_ghost_last_cmd = $null
         $global:_ghost_start_time = $null
     }
