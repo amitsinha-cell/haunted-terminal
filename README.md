@@ -31,8 +31,6 @@ user@haunted-laptop:~/code/project$ rm -rf /tmp/graveyard
 👻 The graveyard was wiped from reality. Not even a trace remains.
 ```
 
-*(Place your recorded asciinema GIF here: `docs/demo.gif`)*
-
 ---
 
 ## 🌟 Why Open Source AI Matters Here
